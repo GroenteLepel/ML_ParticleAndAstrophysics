@@ -2,9 +2,9 @@ from SuSyTruthChecker import SuSyTruthChecker
 
 stc = SuSyTruthChecker("data/train.csv", "data/test.csv")
 
-dt_run = stc.train('dt')
-gnb_run = stc.train('gnb')
+# In order of best accuracy:
+dt_run = stc.train('dt')  # ~0.89
+# gnb_run = stc.train('gnb')  # ~0.77
+# knn_run = stc.train('knn')  # ~0.60
 
-# This one is last since it normalises the data, and the other training methods
-#  are influenced by this negatively.
-knn_run = stc.train('knn')
+stc.perform_test(dt_run, fname_addition='dt')

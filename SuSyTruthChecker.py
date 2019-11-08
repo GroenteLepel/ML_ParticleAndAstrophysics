@@ -7,6 +7,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 import pandas
 
+import store_results
+
 
 class SuSyTruthChecker:
     """
@@ -31,8 +33,6 @@ class SuSyTruthChecker:
         """
         self.train_file = train_file
         self.test_file = test_file
-        self.is_normalised = normalised
-        self.is_standardised = standardised
 
         self.full_train_data = pandas.read_csv(train_file, header=0)
         # Since the test data does not have any labels, we cannot check how
@@ -40,20 +40,21 @@ class SuSyTruthChecker:
         #  full training dataset into two parts: a train and check set.
         self.train_data, self.check_data = train_test_split(
             self.full_train_data, train_size=0.75)
-
         self.test_data = pandas.read_csv(test_file, header=0)
 
         # Set the attributes and target for the training data, which are all
-        #  except the final element.
-        self.attributes = self.train_data.columns[:-1]
+        #  except the first (id) and final (truth_8tev) element.
+        self.attributes = self.train_data.columns[1:-1]
         self.target = 'truth_8tev'
 
+        self.is_normalised = normalised
         if standardised:
-            self._standardise()
+            self.standardise()
+        self.is_standardised = standardised
         if normalised:
-            self._normalise()
+            self.normalise()
 
-    def _standardise(self):
+    def standardise(self):
         """
         Standardise all the data. This replaces the old data.
         :return:
@@ -70,7 +71,7 @@ class SuSyTruthChecker:
 
         self.is_standardised = True
 
-    def _normalise(self):
+    def normalise(self):
         """
         Normalise all the data. This replaces the old data.
         :return:
@@ -94,12 +95,10 @@ class SuSyTruthChecker:
         :return:
         """
         if method == 'knn':
-            # 'Best' result came from normalising the data first, and resulted
-            #   in an accuracy of ~0.59, which is just a bit better than
-            #   guessing.
-            self._normalise()
+            # 'Best' result came from had an accuracy of ~0.59, which is just a
+            #  bit better than guessing.
             method = 'k nearest neighbours'
-            model = KNeighborsClassifier(n_neighbors=4)
+            model = KNeighborsClassifier(n_neighbors=5)
         elif method == 'dt':
             # Best result came from doing nothing with the data, and resulted
             #  in an accuracy of ~0.89.
@@ -124,9 +123,9 @@ class SuSyTruthChecker:
             return 0
 
         print("Training data based on model", method, ".")
-        return self.run_model(model)
+        return self._train_model(model)
 
-    def run_model(self, training_model):
+    def _train_model(self, training_model):
         start = time.time()
         training_model.fit(self.train_data[self.attributes],
                            self.train_data[self.target])
@@ -138,3 +137,21 @@ class SuSyTruthChecker:
         print("Accuracy of model:", accuracy)
 
         return training_model
+
+    def perform_test(self, trained_model, fname_addition: str = ''):
+        """
+        Applies the trained model to the test data, and stores the results in
+        a .csv file with the help of the provided store_results.py file.
+        :param fname_addition: addition to the filename at which the data is
+        stored for better recognition.
+        :param trained_model: model trained by scikit-learn which must be
+        applied to the test data.
+        :return:
+        """
+        if fname_addition != '':
+            fname = 'data/' + fname_addition + '_res.csv'
+        else:
+            fname = 'data/res.csv'
+        prediction = trained_model.predict(self.test_data[self.attributes])
+        store_results.store(self.test_data['id'], prediction,
+                            save_location=fname)
