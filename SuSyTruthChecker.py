@@ -3,7 +3,8 @@ import time
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.naive_bayes import GaussianNB
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.ensemble import AdaBoostClassifier
 from sklearn.metrics import accuracy_score
 import pandas
 
@@ -33,12 +34,13 @@ class SuSyTruthChecker:
         """
         self.train_file = train_file
         self.test_file = test_file
+        self.method = 'none'
 
         self.full_train_data = pandas.read_csv(train_file, header=0)
         # Since the test data does not have any labels, we cannot check how
         #  the trained algorithm will work on that set. For this we split the
         #  full training dataset into two parts: a train and check set.
-        self.train_data, self.check_data = train_test_split(
+        self.train_data, self.val_data = train_test_split(
             self.full_train_data, train_size=0.75)
         self.test_data = pandas.read_csv(test_file, header=0)
 
@@ -97,16 +99,18 @@ class SuSyTruthChecker:
         if method == 'knn':
             # 'Best' result came from had an accuracy of ~0.59, which is just a
             #  bit better than guessing.
-            method = 'k nearest neighbours'
+            self.method = 'k nearest neighbours'
             model = KNeighborsClassifier(n_neighbors=5)
+            return self._train_model(model)
         elif method == 'dt':
             # Best result came from doing nothing with the data, and resulted
             #  in an accuracy of ~0.89.
-            method = 'decision tree'
+            self.method = 'decision tree'
             model = DecisionTreeClassifier(
                 min_samples_leaf=4,
                 min_samples_split=10
             )
+            return self._train_model(model)
         elif method == 'gnb':
             # This method is based on the Bayesian probability that a point in
             #  the data set is a certain class, e.g. p(x = 1), given all the
@@ -116,26 +120,39 @@ class SuSyTruthChecker:
             # This method was just implemented to see the documentation from
             #  scikit-learn, no real experimenting has been done. This delivered
             #  an accuracy of ~0.78.
-            method = 'naive bayes (gaussian)'
+            self.method = 'naive bayes (gaussian)'
             model = GaussianNB()
+            return self._train_model(model)
+        elif method == 'adaboost':
+            self.method = method
+            model = AdaBoostClassifier(n_estimators=10)
+            return self._train_ensemble(model)
         else:
             print("No proper training method given.")
             return 0
-
-        print("Training data based on model", method, ".")
-        return self._train_model(model)
 
     def _train_model(self, training_model):
         start = time.time()
         training_model.fit(self.train_data[self.attributes],
                            self.train_data[self.target])
 
-        prediction = training_model.predict(self.check_data[self.attributes])
-        accuracy = accuracy_score(self.check_data[self.target], prediction)
+        prediction = training_model.predict(self.val_data[self.attributes])
+        accuracy = accuracy_score(self.val_data[self.target], prediction)
 
         print("Training time: %d seconds" % (time.time() - start))
         print("Accuracy of model:", accuracy)
 
+        return training_model
+
+    def _train_ensemble(self, training_model):
+        start = time.time()
+        scores = cross_val_score(training_model,
+                                 self.full_train_data[self.attributes],
+                                 self.full_train_data[self.target],
+                                 cv=5)
+
+        print("Training time: %d seconds" % (time.time() - start))
+        print("Accuracy of model:", scores.mean())
         return training_model
 
     def perform_test(self, trained_model, fname_addition: str = ''):
