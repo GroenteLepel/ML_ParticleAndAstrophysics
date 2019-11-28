@@ -1,5 +1,6 @@
 from NetworkTrainer import NetworkTrainer
 from tensorflow.keras import models, layers
+from sklearn.metrics import accuracy_score
 
 
 class SusyCrossSectionPredictor(NetworkTrainer):
@@ -17,7 +18,8 @@ class SusyCrossSectionPredictor(NetworkTrainer):
             model.add(layers.Dense(64, 'relu'))
             model.add(layers.Dense(64, 'relu'))
             model.add(layers.Dense(1, 'relu'))
-            model.compile(optimizer='adam', loss='MSE')
+            model.compile(optimizer='adam', loss='MSE',
+                          metrics=['accuracy', 'MAE', 'MAPE'])
 
             return self._train_model(model)
         else:
@@ -26,11 +28,16 @@ class SusyCrossSectionPredictor(NetworkTrainer):
     def _train_model(self, training_model):
         # Define for readability:
         t, att = self.target, self.attributes
-        val_data = (self.val_data[att], self.val_data[t])
+        v_data = (self.val_data[att], self.val_data[t])
 
         history = training_model.fit(self.train_data[att],
                                      self.train_data[t],
-                                     epochs=10,
-                                     validation_data=val_data)
+                                     epochs=2,
+                                     validation_data=v_data)
+
+        prediction = training_model.predict(self.val_data[att])
+        acc = accuracy_score(self.val_data[t], prediction)
+
+        print(acc)
 
         return training_model

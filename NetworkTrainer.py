@@ -101,9 +101,9 @@ class NetworkTrainer:
                             save_location=fname)
 
     @abstractmethod
-    def _train_model(self, training_model):
+    def train(self, method: str):
         pass
 
     @abstractmethod
-    def train(self, method: str):
+    def _train_model(self, training_model):
         pass

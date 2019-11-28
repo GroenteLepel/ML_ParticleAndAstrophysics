@@ -57,7 +57,7 @@ class SuSyTruthChecker(NetworkTrainer):
             return self._train_model(model)
         elif method == 'adaboost':
             self.method = method
-            model = AdaBoostClassifier(n_estimators=10)
+            model = AdaBoostClassifier(n_estimators=2)
             return self._train_ensemble(model)
         else:
             raise Exception("No proper training method provided.")
