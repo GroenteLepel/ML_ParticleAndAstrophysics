@@ -1,12 +1,5 @@
-from SuSyTruthChecker import SuSyTruthChecker
+from SusyCrossSectionPredictor import SusyCrossSectionPredictor
 
-stc = SuSyTruthChecker("data/train.csv", "data/test.csv")
-
-# In order of best accuracy:
-dt_run = stc.train('dt')  # ~0.89
-# gnb_run = stc.train('gnb')  # ~0.77
-# knn_run = stc.train('knn')  # ~0.60
-
-# ada_run = stc.train('adaboost')
-
-stc.perform_test(dt_run, fname_addition='dt')
+scsp = SusyCrossSectionPredictor('data/cross_sections_train.csv',
+                                 'data/cross_sections_test.csv')
+scsp.train('seq')
