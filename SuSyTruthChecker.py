@@ -1,15 +1,11 @@
-import time
+from NetworkTrainer import NetworkTrainer
 
+import time
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.naive_bayes import GaussianNB
-from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.model_selection import cross_val_score
 from sklearn.ensemble import AdaBoostClassifier
-from sklearn.metrics import accuracy_score
-import pandas
-
-import store_results
-from NetworkTrainer import NetworkTrainer
 
 
 class SuSyTruthChecker(NetworkTrainer):
@@ -19,10 +15,9 @@ class SuSyTruthChecker(NetworkTrainer):
     be true or not.
     """
 
-    def __init__(self, train_file: str, test_file: str,
-                 standardised: bool = False,
-                 normalised: bool = False):
-        super().__init__(train_file, test_file, 'truth_8tev',
+    def __init__(self, train_file: str, test_file: str, target: str = '',
+                 standardised: bool = False, normalised: bool = False):
+        super().__init__(train_file, test_file, target,
                          standardised, normalised)
         self.method = 'none'
 
@@ -65,7 +60,7 @@ class SuSyTruthChecker(NetworkTrainer):
             model = AdaBoostClassifier(n_estimators=10)
             return self._train_ensemble(model)
         else:
-            print("No proper training method given.")
+            raise Exception("No proper training method provided.")
             return 0
 
     def _train_model(self, training_model):
@@ -91,21 +86,3 @@ class SuSyTruthChecker(NetworkTrainer):
         print("Training time: %d seconds" % (time.time() - start))
         print("Accuracy of model:", scores.mean())
         return training_model
-
-    def perform_test(self, trained_model, fname_addition: str = ''):
-        """
-        Applies the trained model to the test data, and stores the results in
-        a .csv file with the help of the provided store_results.py file.
-        :param fname_addition: addition to the filename at which the data is
-        stored for better recognition.
-        :param trained_model: model trained by scikit-learn which must be
-        applied to the test data.
-        :return:
-        """
-        if fname_addition != '':
-            fname = 'data/' + fname_addition + '_res.csv'
-        else:
-            fname = 'data/res.csv'
-        prediction = trained_model.predict(self.test_data[self.attributes])
-        store_results.store(self.test_data['id'], prediction,
-                            save_location=fname)

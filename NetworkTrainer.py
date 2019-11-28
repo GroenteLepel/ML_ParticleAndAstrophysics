@@ -1,12 +1,16 @@
+import time
 from abc import abstractmethod
 
 import pandas
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+
+import store_results
 
 
 class NetworkTrainer:
 
-    def __init__(self, train_file: str, test_file: str, target: str,
+    def __init__(self, train_file: str, test_file: str, target: str = '',
                  standardised: bool = False,
                  normalised: bool = False
                  ):
@@ -35,7 +39,10 @@ class NetworkTrainer:
         # Set the attributes and target for the training data, which are all
         #  except the first (id) and final (truth_8tev) element.
         self.attributes = self.train_data.columns[1:-1]
-        self.target = target
+        if target == '':
+            self.target = self.train_data.columns[-1:][0]
+        else:
+            self.target = target
 
         self.is_normalised = normalised
         if standardised:
@@ -74,3 +81,29 @@ class NetworkTrainer:
         print("This warning has been checked and can be ignored.\n")
 
         self.is_normalised = True
+
+    def perform_test(self, trained_model, fname_addition: str = ''):
+        """
+        Applies the trained model to the test data, and stores the results in
+        a .csv file with the help of the provided store_results.py file.
+        :param fname_addition: addition to the filename at which the data is
+        stored for better recognition.
+        :param trained_model: model trained by scikit-learn which must be
+        applied to the test data.
+        :return:
+        """
+        if fname_addition != '':
+            fname = 'data/' + fname_addition + '_res.csv'
+        else:
+            fname = 'data/res.csv'
+        prediction = trained_model.predict(self.test_data[self.attributes])
+        store_results.store(self.test_data['id'], prediction,
+                            save_location=fname)
+
+    @abstractmethod
+    def _train_model(self, training_model):
+        pass
+
+    @abstractmethod
+    def train(self, method: str):
+        pass
